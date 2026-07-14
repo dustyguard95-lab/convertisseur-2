@@ -1,0 +1,37 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculateur Vinted / LoveGoBuy</title>
+<style>
+body{background:#121212;color:#eaeaea;font-family:Arial,sans-serif;max-width:700px;margin:auto;padding:20px}
+input{width:100%;padding:10px;margin:6px 0;background:#1e1e1e;color:#fff;border:1px solid #333;border-radius:8px}
+button{padding:10px 15px;background:#2d2d2d;color:white;border:none;border-radius:8px;cursor:pointer}
+button:hover{background:#3a3a3a}
+.result{margin-top:15px;font-weight:bold;background:#1e1e1e;padding:12px;border-radius:8px}
+</style>
+</head>
+<body>
+<h2>📦 Calculateur Vinted / LoveGoBuy</h2>
+<label>Prix article (CNY)</label><input type="number" id="cny" value="80">
+<label>Poids (g)</label><input type="number" id="poids" value="500">
+<label>Taux CNY → €</label><input type="number" id="taux" value="8" step="0.01">
+<label>Livraison (€ par kg)</label><input type="number" id="liv" value="15" step="0.01">
+<label>Prix de vente prévu (€)</label><input type="number" id="vente" value="30" step="0.01">
+<button onclick="calc()">Calculer</button>
+<div class="result" id="res"></div>
+<script>
+function calc(){
+let cny=+cny.value, poids=+document.getElementById('poids').value,
+taux=+document.getElementById('taux').value, liv=+document.getElementById('liv').value,
+vente=+document.getElementById('vente').value;
+let total=(cny/taux)+((poids/1000)*liv);
+let profit=vente-total;
+let marge=(profit/vente)*100;
+res.innerHTML=`Coût total : ${total.toFixed(2)} €<br>Profit : ${profit.toFixed(2)} €<br>Marge : ${marge.toFixed(1)} %`;
+}
+</script>
+</body>
+</html>
