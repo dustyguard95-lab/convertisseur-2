@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analyseur Photo QC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B0D10;
+    --card:#15181D;
+    --card-border:#22262d;
+    --text:#EDEFF2;
+    --muted:#8A8F98;
+    --blue:#3B9EFF;
+    --green:#3DDC84;
+    --yellow:#FFC93C;
+    --red:#FF5C5C;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    padding:28px 16px 120px;
+  }
+  .wrap{ width:100%; max-width:480px; }
+  .eyebrow{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--blue);
+    margin-bottom:6px;
+  }
+  h1{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:26px;
+    font-weight:700;
+    margin:0 0 4px;
+    line-height:1.2;
+  }
+  .sub{
+    color:var(--muted);
+    font-size:14px;
+    margin-bottom:24px;
+  }
+  .criteria{ display:flex; flex-direction:column; gap:10px; }
+  .item{
+    background:var(--card);
+    border:1px solid var(--card-border);
+    border-radius:14px;
+    padding:14px 16px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    transition:border-color .2s ease;
+  }
+  .item.answered{ border-color:#2c313a; }
+  .item-label{ font-size:15px; font-weight:500; line-height:1.35; }
+  .item-hint{
+    display:block;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    color:var(--muted);
+    margin-top:3px;
+  }
+  .toggle{
+    display:flex;
+    flex-shrink:0;
+    background:#0d0f13;
+    border-radius:10px;
+    padding:3px;
+    gap:2px;
+  }
+  .toggle button{
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:13px;
+    border:none;
+    background:transparent;
+    color:var(--muted);
+    padding:7px 14px;
+    border-radius:8px;
+    cursor:pointer;
+    transition:background .15s ease,color .15s ease;
+  }
+  .toggle button.oui.active{ background:var(--green); color:#0B0D10; }
+  .toggle button.non.active{ background:var(--red); color:#0B0D10; }
+  .toggle button:not(.active):hover{ color:var(--text); }
+
+  .apply-bar{
+    position:fixed;
+    bottom:0; left:0; right:0;
+    display:flex;
+    justify-content:center;
+    padding:16px;
+    background:linear-gradient(to top, var(--bg) 60%, transparent);
+  }
+  .apply-btn{
+    width:100%;
+    max-width:448px;
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:16px;
+    letter-spacing:.02em;
+    background:var(--blue);
+    color:#0B0D10;
+    border:none;
+    border-radius:14px;
+    padding:16px;
+    cursor:pointer;
+    transition:transform .1s ease, filter .15s ease;
+  }
+  .apply-btn:hover{ filter:brightness(1.08); }
+  .apply-btn:active{ transform:scale(.98); }
+
+  .result{
+    margin-top:26px;
+    border-radius:16px;
+    border:1px solid var(--card-border);
+    background:var(--card);
+    padding:24px;
+    display:none;
+    opacity:0;
+    transform:translateY(8px);
+    transition:opacity .35s ease, transform .35s ease;
+    position:relative;
+  }
+  .result.show{ display:block; opacity:1; transform:translateY(0); }
+  .copy-btn{
+    position:absolute;
+    top:18px; right:18px;
+    background:#0d0f13;
+    border:1px solid var(--card-border);
+    color:var(--muted);
+    border-radius:10px;
+    width:36px; height:36px;
+    font-size:15px;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition:color .15s ease, border-color .15s ease;
+  }
+  .copy-btn:hover{ color:var(--blue); border-color:var(--blue); }
+  .copy-btn.copied{ color:var(--green); border-color:var(--green); }
+
+  .score-line{
+    font-family:'JetBrains Mono',monospace;
+    font-size:15px;
+    color:var(--muted);
+  }
+  .score-num{
+    font-family:'JetBrains Mono',monospace;
+    font-weight:700;
+    font-size:26px;
+    color:var(--blue);
+  }
+  .verdict-title{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-top:20px;
+    margin-bottom:10px;
+  }
+  .verdict-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:8px 0;
+    font-family:'JetBrains Mono',monospace;
+    font-size:14px;
+    color:#4b4f57;
+  }
+  .verdict-row .dot{
+    width:12px; height:12px;
+    border-radius:50%;
+    flex-shrink:0;
+  }
+  .verdict-row.active{
+    color:var(--text);
+    font-weight:600;
+  }
+  .dot-green{ background:var(--green); }
+  .dot-yellow{ background:var(--yellow); }
+  .dot-red{ background:var(--red); }
+
+  .verdict-emoji{
+    font-size:36px;
+    margin-top:14px;
+  }
+  .verdict-sub{
+    color:var(--muted);
+    font-size:13px;
+    margin-top:6px;
+    line-height:1.4;
+  }
+  .reset-link{
+    display:block;
+    text-align:center;
+    color:var(--muted);
+    font-size:13px;
+    margin-top:18px;
+    text-decoration:underline;
+    cursor:pointer;
+    background:none;
+    border:none;
+    font-family:'Inter',sans-serif;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Contrôle qualité photo</div>
+  <h1>🔍 Analyseur Photo QC</h1>
+  <div class="sub">Réponds à chaque critère à partir des photos QC, puis appuie sur Analyser.</div>
+
+  <div class="criteria" id="criteria"></div>
+
+  <div class="result" id="result">
+    <button class="copy-btn" id="copyBtn" title="Copier le résultat">📋</button>
+    <div class="score-line">Score : <span class="score-num" id="scoreNum">0/100</span></div>
+
+    <div class="verdict-title">Verdict</div>
+    <div class="verdict-row" id="row-green"><span class="dot dot-green"></span>Bon achat</div>
+    <div class="verdict-row" id="row-yellow"><span class="dot dot-yellow"></span>À vérifier</div>
+    <div class="verdict-row" id="row-red"><span class="dot dot-red"></span>Éviter</div>
+
+    <div class="verdict-emoji" id="verdictEmoji"></div>
+    <div class="verdict-sub" id="verdictSub"></div>
+
+    <button class="reset-link" id="resetBtn">Réinitialiser l'analyse</button>
+  </div>
+</div>
+
+<div class="apply-bar">
+  <button class="apply-btn" id="applyBtn">🔎 Analyser</button>
+</div>
+
+<script>
+  // Chaque critère : id unique, label, emoji, poids sur 100, et si le "Oui" est positif ou négatif
+  const criteres = [
+    { id:'logo',      emoji:'🏷️', label:'Logo correct',        weight:20, positive:true  },
+    { id:'couture',    emoji:'🧵', label:'Couture propre',       weight:15, positive:true  },
+    { id:'etiquette',  emoji:'🔖', label:'Étiquette correcte',   weight:15, positive:true  },
+    { id:'couleurs',   emoji:'🎨', label:'Couleurs proches',     weight:15, positive:true  },
+    { id:'defauts',    emoji:'🔍', label:'Défauts visibles',     weight:25, positive:false, hint:'Idéalement : Non' },
+    { id:'packaging',  emoji:'📦', label:'Packaging correct',    weight:10, positive:true  }
+  ];
+
+  const answers = {};
+  criteres.forEach(c => { answers[c.id] = null; });
+
+  const criteriaEl = document.getElementById('criteria');
+  const applyBtn = document.getElementById('applyBtn');
+  const resultEl = document.getElementById('result');
+  const scoreNumEl = document.getElementById('scoreNum');
+  const verdictEmojiEl = document.getElementById('verdictEmoji');
+  const verdictSubEl = document.getElementById('verdictSub');
+  const resetBtn = document.getElementById('resetBtn');
+  const copyBtn = document.getElementById('copyBtn');
+  const rowGreen = document.getElementById('row-green');
+  const rowYellow = document.getElementById('row-yellow');
+  const rowRed = document.getElementById('row-red');
+
+  // 1) Construction de la checklist
+  criteres.forEach(c => {
+    const item = document.createElement('div');
+    item.className = 'item';
+    item.innerHTML = `
+      <div class="item-label">${c.emoji} ${c.label}${c.hint ? `<span class="item-hint">${c.hint}</span>` : ''}</div>
+      <div class="toggle">
+        <button type="button" class="oui" data-id="${c.id}" data-v="1">Oui</button>
+        <button type="button" class="non" data-id="${c.id}" data-v="0">Non</button>
+      </div>
+    `;
+    criteriaEl.appendChild(item);
+  });
+
+  criteriaEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const id = btn.dataset.id;
+    const v = parseInt(btn.dataset.v, 10);
+    answers[id] = v;
+
+    const item = btn.closest('.item');
+    item.classList.add('answered');
+    item.querySelectorAll('.toggle button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+
+  let lastResult = null;
+
+  applyBtn.addEventListener('click', () => {
+    const unanswered = criteres.some(c => answers[c.id] === null);
+    if (unanswered){
+      alert("Réponds à tous les critères avant d'analyser.");
+      return;
+    }
+
+    let score = 0;
+    criteres.forEach(c => {
+      const oui = answers[c.id] === 1;
+      const positiveHit = c.positive ? oui : !oui;
+      if (positiveHit) score += c.weight;
+    });
+    score = Math.round(score);
+
+    scoreNumEl.textContent = `${score}/100`;
+
+    let level, emoji, sub;
+    if (score >= 85){
+      level = 'green';
+      emoji = '🟢';
+      sub = "Bon score. La photo QC valide assez de critères, l'article semble fiable.";
+    } else if (score >= 60){
+      level = 'yellow';
+      emoji = '🟡';
+      sub = "Score correct mais pas parfait. Demande d'autres photos ou précisions avant de valider.";
+    } else {
+      level = 'red';
+      emoji = '🔴';
+      sub = "Score trop bas. Trop de critères manquants ou de défauts visibles, mieux vaut éviter.";
+    }
+
+    [rowGreen, rowYellow, rowRed].forEach(r => r.classList.remove('active'));
+    if (level === 'green') rowGreen.classList.add('active');
+    if (level === 'yellow') rowYellow.classList.add('active');
+    if (level === 'red') rowRed.classList.add('active');
+
+    verdictEmojiEl.textContent = emoji;
+    verdictSubEl.textContent = sub;
+
+    lastResult = { score, level, emoji };
+
+    resultEl.classList.add('show');
+    resultEl.scrollIntoView({ behavior:'smooth', block:'nearest' });
+  });
+
+  copyBtn.addEventListener('click', async () => {
+    if (!lastResult) return;
+    const verdictLabel = lastResult.level === 'green' ? 'Bon achat' : (lastResult.level === 'yellow' ? 'À vérifier' : 'Éviter');
+    const text = `Score : ${lastResult.score}/100\nVerdict : ${lastResult.emoji} ${verdictLabel}`;
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (e){
+      // Fallback si le presse-papier moderne n'est pas disponible
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch(err){}
+      document.body.removeChild(ta);
+    }
+    copyBtn.classList.add('copied');
+    copyBtn.textContent = '✅';
+    setTimeout(() => {
+      copyBtn.classList.remove('copied');
+      copyBtn.textContent = '📋';
+    }, 1500);
+  });
+
+  resetBtn.addEventListener('click', () => {
+    criteres.forEach(c => { answers[c.id] = null; });
+    document.querySelectorAll('.item').forEach(item => {
+      item.classList.remove('answered');
+      item.querySelectorAll('.toggle button').forEach(b => b.classList.remove('active'));
+    });
+    resultEl.classList.remove('show');
+    lastResult = null;
+    window.scrollTo({ top:0, behavior:'smooth' });
+  });
+</script>
+</body>
+</html>
