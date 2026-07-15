@@ -1,1 +1,84 @@
-<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Calculateur Vinted Ultimate</title><style>body{background:#121212;color:#fff;font-family:Arial,sans-serif;max-width:900px;margin:auto;padding:20px}.card{background:#1e1e1e;padding:15px;border-radius:12px;margin-bottom:15px}input,select{width:100%;padding:10px;margin-top:5px;background:#2a2a2a;color:#fff;border:1px solid #444;border-radius:8px;box-sizing:border-box}button{width:100%;padding:12px;margin-top:10px;background:#333;color:#fff;border:none;border-radius:8px}.result{font-weight:bold;line-height:1.8}table{width:100%;border-collapse:collapse}td,th{border:1px solid #444;padding:8px}</style></head><body><h1>📦 Vinted Ultimate</h1><div class="card"><label>Type d'article</label><select id="preset" onchange="presetPoids()"><option value="">Choisir</option><option value="300">T-shirt</option><option value="350">Polo</option><option value="850">Hoodie</option><option value="800">Jean</option><option value="200">Casquette</option><option value="1200">Chaussures</option></select><label>Prix article (CNY)</label><input id="cny" type="number" value="80"><label>Poids (g)</label><input id="poids" type="number" value="500"><label>Taux CNY par €</label><input id="taux" type="number" value="7.75" step="0.01"><label>Livraison (€ / kg)</label><input id="liv" type="number" value="15"><label>Prix de vente prévu (€)</label><input id="vente" type="number" value="30"><button onclick="calc()">Calculer</button></div><div class="card result" id="res">Entre les valeurs puis clique sur Calculer.</div><script>function presetPoids(){document.getElementById('poids').value=document.getElementById('preset').value;}function calc(){let cny=Number(document.getElementById('cny').value);let poids=Number(document.getElementById('poids').value);let taux=Number(document.getElementById('taux').value);let liv=Number(document.getElementById('liv').value);let vente=Number(document.getElementById('vente').value);let achat=cny/taux;let livraison=(poids/1000)*liv;let total=achat+livraison;let profit=vente-total;let marge=vente?profit/vente*100:0;let badge='🔴 À éviter';if(profit>=20)badge='🟢 Excellente affaire';else if(profit>=10)badge='🟡 Correcte';document.getElementById('res').innerHTML='💰 Coût article : '+achat.toFixed(2)+' €<br>📦 Livraison : '+livraison.toFixed(2)+' €<br>💸 Coût total : '+total.toFixed(2)+' €<br>💵 Profit : '+profit.toFixed(2)+' €<br>📈 Marge : '+marge.toFixed(1)+' %<br><br>'+badge;}</script></body></html>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vinted V2 Pro+ Prix Conseillé</title>
+<style>
+body{font-family:-apple-system,sans-serif;background:#111;color:#fff;max-width:900px;margin:auto;padding:20px}
+.card{background:#1b1b1b;padding:16px;border-radius:16px;margin:12px 0}
+input,select,button{width:100%;padding:10px;margin:6px 0;border-radius:10px;border:none}
+.good{color:#3ddc84}
+</style>
+</head>
+<body>
+<h1>📦 Vinted Calculateur V2 Pro+</h1>
+
+<div class="card">
+<h3>Article</h3>
+<input id="name" placeholder="Nom article">
+<select id="weight">
+<option value="0.25">T-shirt (250g)</option>
+<option value="0.6">Hoodie (600g)</option>
+<option value="1.2">Chaussures (1.2kg)</option>
+<option value="0.8">Jean (800g)</option>
+</select>
+<input id="buyCny" type="number" placeholder="Prix achat (CNY)">
+<input id="targetProfit" type="number" value="15" placeholder="Profit souhaité (€)">
+<input id="sellPrice" type="number" placeholder="Prix vente réel (€) (optionnel)">
+<input id="kgPrice" type="number" value="12" placeholder="Livraison €/kg">
+<button onclick="calc()">Calculer</button>
+</div>
+
+<div class="card">
+<h3>Résultat</h3>
+<div id="result"></div>
+</div>
+
+<script>
+let rate = 0.12;
+
+async function loadRate(){
+ try{
+   const r = await fetch('https://api.exchangerate.host/latest?base=CNY&symbols=EUR');
+   const d = await r.json();
+   if(d.rates && d.rates.EUR) rate = d.rates.EUR;
+ }catch(e){}
+}
+loadRate();
+
+function calc(){
+ const buyCny = parseFloat(document.getElementById('buyCny').value||0);
+ const targetProfit = parseFloat(document.getElementById('targetProfit').value||0);
+ const sellReal = parseFloat(document.getElementById('sellPrice').value||0);
+ const weight = parseFloat(document.getElementById('weight').value||0);
+ const kgPrice = parseFloat(document.getElementById('kgPrice').value||0);
+
+ const buyEuro = buyCny * rate;
+ const shipping = weight * kgPrice;
+
+ // Prix conseillé = achat + livraison + profit souhaité
+ const suggested = buyEuro + shipping + targetProfit;
+
+ let html = `
+ Achat converti : ${buyEuro.toFixed(2)} €<br>
+ Livraison estimée : ${shipping.toFixed(2)} €<br><br>
+ <span class="good"><b>Prix de vente conseillé : ${suggested.toFixed(2)} €</b></span><br><br>
+ `;
+
+ if(sellReal > 0){
+   const profit = sellReal - buyEuro - shipping;
+   const margin = sellReal ? (profit/sellReal)*100 : 0;
+
+   html += `
+   Prix réel : ${sellReal.toFixed(2)} €<br>
+   Profit réel : ${profit.toFixed(2)} €<br>
+   Marge : ${margin.toFixed(1)} %
+   `;
+ }
+
+ document.getElementById('result').innerHTML = html;
+}
+</script>
+</body>
+</html>
