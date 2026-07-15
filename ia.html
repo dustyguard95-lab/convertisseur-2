@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Revente Pro Ultimate</title>
+<style>
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:#060b16;color:#fff}
+header{padding:20px;background:linear-gradient(135deg,#0b1220,#102a56);position:sticky;top:0}
+.card{background:rgba(255,255,255,.08);backdrop-filter:blur(12px);border-radius:18px;padding:16px;margin:12px}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:space-around;background:#09101c;padding:10px}
+button{background:#1e5eff;color:#fff;border:0;padding:10px 14px;border-radius:10px}
+input,select{width:100%;padding:10px;margin:6px 0;border-radius:10px;border:1px solid #2d4d88;background:#111a2b;color:#fff}
+.page{display:none;padding-bottom:80px}
+.page.active{display:block}
+</style>
+</head>
+<body>
+<header><h2>Revente Pro Ultimate</h2></header>
+
+<div id="home" class="page active">
+<div class="card">
+<h3>IA d'estimation</h3>
+<input id="name" placeholder="Produit">
+<input id="buy" type="number" placeholder="Prix achat">
+<select id="cat">
+<option>Sneakers</option><option>Vêtements</option><option>Sacs</option>
+<option>Montres</option><option>Accessoires</option><option>Luxe</option>
+</select>
+<button onclick="estimate()">Estimer</button>
+<div id="result"></div>
+</div>
+</div>
+
+<div id="dashboard" class="page"><div class="card"><h3>Dashboard</h3><div id="dash"></div></div></div>
+<div id="history" class="page"><div class="card"><h3>Historique</h3><div id="hist"></div></div></div>
+<div id="stats" class="page"><div class="card"><h3>Statistiques</h3><div id="statsbox"></div></div></div>
+<div id="settings" class="page"><div class="card"><h3>Paramètres</h3><input id="goal" placeholder="Objectif mensuel"><button onclick="saveSettings()">Sauvegarder</button></div></div>
+
+<nav>
+<button onclick="show('home')">Accueil</button>
+<button onclick="show('dashboard')">Dashboard</button>
+<button onclick="show('history')">Historique</button>
+<button onclick="show('stats')">Stats</button>
+<button onclick="show('settings')">Réglages</button>
+</nav>
+
+<script>
+let items=JSON.parse(localStorage.getItem('items')||'[]');
+
+function show(id){
+document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+document.getElementById(id).classList.add('active');
+render();
+}
+
+function estimate(){
+let buy=+document.getElementById('buy').value||0;
+let low=Math.round(buy*1.4);
+let mid=Math.round(buy*1.8);
+let high=Math.round(buy*2.3);
+let rec=Math.round((mid+high)/2);
+let demand=Math.min(100,50+Math.round(Math.random()*50));
+let profit=rec-buy;
+
+let obj={
+name:document.getElementById('name').value,
+buy,low,mid,high,rec,demand,profit,date:new Date().toLocaleDateString()
+};
+items.push(obj);
+localStorage.setItem('items',JSON.stringify(items));
+
+document.getElementById('result').innerHTML=`
+<p>Prix bas: ${low}€</p>
+<p>Prix moyen: ${mid}€</p>
+<p>Prix haut: ${high}€</p>
+<p>Prix conseillé: ${rec}€</p>
+<p>Demande: ${demand}/100</p>
+<p>Profit estimé: ${profit}€</p>`;
+render();
+}
+
+function render(){
+document.getElementById('hist').innerHTML=items.map(i=>
+`<div class="card">${i.name} | Profit ${i.profit}€</div>`).join('');
+
+let profit=items.reduce((a,b)=>a+b.profit,0);
+document.getElementById('dash').innerHTML=`Articles: ${items.length}<br>Profit potentiel: ${profit}€`;
+document.getElementById('statsbox').innerHTML=`Profit total: ${profit}€<br>Moyenne: ${items.length?Math.round(profit/items.length):0}€`;
+}
+
+function saveSettings(){
+localStorage.setItem('goal',document.getElementById('goal').value);
+alert('Sauvegardé');
+}
+render();
+</script>
+</body>
+</html>
