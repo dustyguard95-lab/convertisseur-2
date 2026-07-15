@@ -1,0 +1,171 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AllResell Manager V1 Pro</title>
+<style>
+body{font-family:-apple-system,sans-serif;background:#121212;color:#fff;max-width:1400px;margin:auto;padding:15px}
+.card{background:#1d1d1f;border-radius:18px;padding:15px;margin:12px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+input,select,textarea,button{width:100%;box-sizing:border-box;border:none;border-radius:12px;padding:12px;margin-top:8px}
+input,select,textarea{background:#2c2c2e;color:#fff}
+button{background:#0A84FF;color:white;font-weight:bold}
+.stat{background:#181818;padding:12px;border-radius:14px}
+.item{background:#181818;padding:12px;border-radius:14px;margin-top:10px}
+img{max-width:120px;border-radius:10px;margin-top:8px}
+.small{color:#aaa;font-size:12px}
+</style>
+</head>
+<body>
+
+<h1>📦 AllResell Manager V1 Pro</h1>
+
+<div class="card">
+<h2>➕ Ajouter un article</h2>
+<div class="grid">
+<input id="name" placeholder="Nom">
+<input id="brand" placeholder="Marque">
+<input id="size" placeholder="Taille">
+<input id="buy" type="number" placeholder="Prix achat">
+<input id="ship" type="number" placeholder="Livraison">
+<input id="sell" type="number" placeholder="Prix vente prévu">
+<input id="weight" type="number" placeholder="Poids (g)">
+<input id="qc" type="number" placeholder="Score QC /100">
+</div>
+<input id="link" placeholder="Lien produit">
+<input id="tracking" placeholder="Numéro de suivi">
+<select id="status">
+<option>🟡 Commandé</option>
+<option>🟠 Entrepôt</option>
+<option>🔵 Expédié</option>
+<option>🟢 Reçu</option>
+<option>💰 Vendu</option>
+</select>
+<textarea id="notes" placeholder="Notes"></textarea>
+<input id="photo" type="file" accept="image/*">
+<button onclick="addItem()">📦 Ajouter l'article</button>
+</div>
+
+<div class="card">
+<h2>📊 Dashboard</h2>
+<div class="grid">
+<div class="stat">📦 Articles : <span id="c1">0</span></div>
+<div class="stat">💸 Investi : <span id="c2">0€</span></div>
+<div class="stat">📈 Valeur estimée : <span id="c3">0€</span></div>
+<div class="stat">✅ Profit potentiel : <span id="c4">0€</span></div>
+<div class="stat">💰 Vendus : <span id="c5">0</span></div>
+<div class="stat">⭐ QC moyen : <span id="c6">0</span></div>
+</div>
+</div>
+
+<div class="card">
+<h2>🔍 Recherche</h2>
+<input id="search" placeholder="Rechercher..." oninput="render()">
+</div>
+
+<div class="card">
+<h2>📋 Stock</h2>
+<div id="list"></div>
+</div>
+
+<script>
+let data=JSON.parse(localStorage.getItem("allresell_v1")||"[]");
+
+function save(){
+localStorage.setItem("allresell_v1",JSON.stringify(data));
+}
+
+function addItem(){
+const file=document.getElementById("photo").files[0];
+
+function create(img=""){
+data.unshift({
+name:name.value,
+brand:brand.value,
+size:size.value,
+buy:+buy.value||0,
+ship:+ship.value||0,
+sell:+sell.value||0,
+weight:+weight.value||0,
+qc:+qc.value||0,
+link:link.value,
+tracking:tracking.value,
+status:status.value,
+notes:notes.value,
+photo:img,
+date:new Date().toLocaleDateString()
+});
+save();
+render();
+}
+
+if(file){
+let r=new FileReader();
+r.onload=e=>create(e.target.result);
+r.readAsDataURL(file);
+}else{
+create();
+}
+}
+
+function del(i){
+data.splice(i,1);
+save();
+render();
+}
+
+function render(){
+let q=(search.value||"").toLowerCase();
+
+let invested=0,val=0,profit=0,sold=0,qcavg=0;
+
+data.forEach(x=>{
+invested+=x.buy+x.ship;
+val+=x.sell;
+profit+=x.sell-(x.buy+x.ship);
+if(x.status.includes("Vendu")) sold++;
+qcavg+=x.qc||0;
+});
+
+document.getElementById("c1").textContent=data.length;
+document.getElementById("c2").textContent=invested.toFixed(2)+"€";
+document.getElementById("c3").textContent=val.toFixed(2)+"€";
+document.getElementById("c4").textContent=profit.toFixed(2)+"€";
+document.getElementById("c5").textContent=sold;
+document.getElementById("c6").textContent=data.length?(qcavg/data.length).toFixed(1):0;
+
+list.innerHTML="";
+
+data.filter(x=>JSON.stringify(x).toLowerCase().includes(q))
+.forEach((x,i)=>{
+let total=x.buy+x.ship;
+let gain=x.sell-total;
+let margin=total?((gain/total)*100).toFixed(1):0;
+
+list.innerHTML+=`
+<div class="item">
+<h3>${x.name||"Article"}</h3>
+<div>${x.status}</div>
+<div class="small">📅 ${x.date}</div>
+<div>🏷️ ${x.brand}</div>
+<div>📏 Taille : ${x.size}</div>
+<div>⚖️ ${x.weight} g</div>
+<div>💸 Coût total : ${total.toFixed(2)}€</div>
+<div>💰 Vente prévue : ${x.sell.toFixed(2)}€</div>
+<div>📈 Profit : ${gain.toFixed(2)}€</div>
+<div>🚀 Marge : ${margin}%</div>
+<div>⭐ QC : ${x.qc}/100</div>
+<div>📦 Suivi : ${x.tracking||"-"}</div>
+<div>📝 ${x.notes||"-"}</div>
+${x.link?`<a href="${x.link}" target="_blank">🔗 Ouvrir le lien</a>`:""}
+${x.photo?`<br><img src="${x.photo}">`:""}
+<button onclick="del(${i})">🗑️ Supprimer</button>
+</div>`;
+});
+}
+render();
+</script>
+</body>
+</html>
