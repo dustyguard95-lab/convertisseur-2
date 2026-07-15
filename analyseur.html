@@ -1,1 +1,510 @@
 
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fiche d'analyse — Achat-Revente</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B0D10;
+    --card:#15181D;
+    --card-border:#22262d;
+    --text:#EDEFF2;
+    --muted:#8A8F98;
+    --blue:#3B9EFF;
+    --green:#3DDC84;
+    --red:#FF5C5C;
+    --blue-dim:#12283f;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    padding:28px 16px 120px;
+  }
+  .wrap{
+    width:100%;
+    max-width:480px;
+  }
+  .eyebrow{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--blue);
+    margin-bottom:6px;
+  }
+  h1{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:28px;
+    font-weight:700;
+    margin:0 0 4px;
+    line-height:1.15;
+  }
+  .sub{
+    color:var(--muted);
+    font-size:14px;
+    margin-bottom:24px;
+  }
+  .criteria{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .item{
+    background:var(--card);
+    border:1px solid var(--card-border);
+    border-radius:14px;
+    padding:14px 16px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    transition:border-color .2s ease;
+  }
+  .item.answered{
+    border-color:#2c313a;
+  }
+  .item-label{
+    font-size:15px;
+    font-weight:500;
+    line-height:1.35;
+  }
+  .item-num{
+    font-family:'JetBrains Mono',monospace;
+    color:var(--muted);
+    font-size:12px;
+    margin-right:6px;
+  }
+  .toggle{
+    display:flex;
+    flex-shrink:0;
+    background:#0d0f13;
+    border-radius:10px;
+    padding:3px;
+    gap:2px;
+  }
+  .toggle button{
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:13px;
+    border:none;
+    background:transparent;
+    color:var(--muted);
+    padding:7px 14px;
+    border-radius:8px;
+    cursor:pointer;
+    transition:background .15s ease,color .15s ease;
+  }
+  .toggle button.oui.active{
+    background:var(--green);
+    color:#0B0D10;
+  }
+  .toggle button.non.active{
+    background:var(--red);
+    color:#0B0D10;
+  }
+  .toggle button:not(.active):hover{
+    color:var(--text);
+  }
+  .apply-bar{
+    position:fixed;
+    bottom:0;
+    left:0;
+    right:0;
+    display:flex;
+    justify-content:center;
+    padding:16px;
+    background:linear-gradient(to top, var(--bg) 60%, transparent);
+  }
+  .apply-btn{
+    width:100%;
+    max-width:448px;
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:16px;
+    letter-spacing:.02em;
+    background:var(--blue);
+    color:#0B0D10;
+    border:none;
+    border-radius:14px;
+    padding:16px;
+    cursor:pointer;
+    transition:transform .1s ease, filter .15s ease;
+  }
+  .apply-btn:hover{ filter:brightness(1.08); }
+  .apply-btn:active{ transform:scale(.98); }
+  .apply-btn:disabled{
+    background:#3a3d43;
+    color:var(--muted);
+    cursor:not-allowed;
+  }
+
+  .result{
+    margin-top:26px;
+    border-radius:16px;
+    border:1px solid var(--card-border);
+    background:var(--card);
+    padding:24px;
+    display:none;
+    opacity:0;
+    transform:translateY(8px);
+    transition:opacity .35s ease, transform .35s ease;
+  }
+  .result.show{
+    display:block;
+    opacity:1;
+    transform:translateY(0);
+  }
+  .result-top{
+    display:flex;
+    align-items:center;
+    gap:16px;
+  }
+  .badge{
+    font-size:40px;
+    line-height:1;
+  }
+  .score-num{
+    font-family:'JetBrains Mono',monospace;
+    font-weight:700;
+    font-size:30px;
+  }
+  .verdict{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:17px;
+    margin-top:14px;
+  }
+  .verdict-sub{
+    color:var(--muted);
+    font-size:13px;
+    margin-top:4px;
+    line-height:1.4;
+  }
+  .reset-link{
+    display:block;
+    text-align:center;
+    color:var(--muted);
+    font-size:13px;
+    margin-top:14px;
+    text-decoration:underline;
+    cursor:pointer;
+    background:none;
+    border:none;
+    font-family:'Inter',sans-serif;
+  }
+
+  .article-field{
+    margin-bottom:20px;
+  }
+  .article-field label{
+    display:block;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-bottom:6px;
+  }
+  .article-field input{
+    width:100%;
+    background:var(--card);
+    border:1px solid var(--card-border);
+    border-radius:12px;
+    padding:13px 14px;
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    font-size:15px;
+    font-weight:500;
+    outline:none;
+    transition:border-color .15s ease;
+  }
+  .article-field input::placeholder{ color:#565b64; }
+  .article-field input:focus{ border-color:var(--blue); }
+
+  .history{
+    margin-top:40px;
+  }
+  .history-title{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:16px;
+    margin-bottom:12px;
+  }
+  .history-empty{
+    color:var(--muted);
+    font-size:13px;
+  }
+  .history-list{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .history-item{
+    background:var(--card);
+    border:1px solid var(--card-border);
+    border-radius:12px;
+    padding:12px 14px;
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+  .history-emoji{
+    font-size:18px;
+    flex-shrink:0;
+  }
+  .history-info{
+    flex:1;
+    min-width:0;
+  }
+  .history-name{
+    font-size:14px;
+    font-weight:600;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .history-meta{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    color:var(--muted);
+    margin-top:2px;
+  }
+  .history-del{
+    background:none;
+    border:none;
+    color:var(--muted);
+    font-size:16px;
+    cursor:pointer;
+    padding:4px 6px;
+    flex-shrink:0;
+  }
+  .history-del:hover{ color:var(--red); }
+  .history-clear{
+    display:block;
+    margin:14px auto 0;
+    color:var(--muted);
+    font-size:12px;
+    text-decoration:underline;
+    background:none;
+    border:none;
+    cursor:pointer;
+    font-family:'Inter',sans-serif;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Avant chaque commande</div>
+  <h1>Fiche d'analyse<br>achat-revente</h1>
+  <div class="sub">Réponds à chaque critère, puis appuie sur Appliquer.</div>
+
+  <div class="article-field">
+    <label for="articleName">Nom de l'article</label>
+    <input type="text" id="articleName" placeholder="Ex : Nike Tech Fleece noir taille M">
+  </div>
+
+  <div class="criteria" id="criteria"></div>
+
+  <div class="result" id="result">
+    <div class="result-top">
+      <div class="badge" id="badge">🔴</div>
+      <div>
+        <div class="score-num" id="scoreNum">0/7</div>
+      </div>
+    </div>
+    <div class="verdict" id="verdict"></div>
+    <div class="verdict-sub" id="verdictSub"></div>
+    <button class="reset-link" id="resetBtn">Réinitialiser la fiche</button>
+  </div>
+
+  <div class="history">
+    <div class="history-title">Historique</div>
+    <div id="historyContent"></div>
+  </div>
+</div>
+
+<div class="apply-bar">
+  <button class="apply-btn" id="applyBtn">Appliquer</button>
+</div>
+
+<script>
+  const criteres = [
+    "Marque connue ?",
+    "Taille populaire (S, M, L) ?",
+    "État visuel parfait ?",
+    "Plus de 20 favoris sur Vinted pour des articles similaires ?",
+    "Prix de revente vérifié ?",
+    "Marge minimum 15 € ?",
+    "Demande toute l'année ?"
+  ];
+
+  const answers = new Array(criteres.length).fill(null);
+  const HISTORY_KEY = 'ldc_fiches_historique';
+
+  const criteriaEl = document.getElementById('criteria');
+  const applyBtn = document.getElementById('applyBtn');
+  const resultEl = document.getElementById('result');
+  const badgeEl = document.getElementById('badge');
+  const scoreNumEl = document.getElementById('scoreNum');
+  const verdictEl = document.getElementById('verdict');
+  const verdictSubEl = document.getElementById('verdictSub');
+  const resetBtn = document.getElementById('resetBtn');
+  const articleNameEl = document.getElementById('articleName');
+  const historyContentEl = document.getElementById('historyContent');
+
+  // 1) Affichage de la checklist — toujours en premier, ne dépend de rien d'autre
+  criteres.forEach((label, i) => {
+    const item = document.createElement('div');
+    item.className = 'item';
+    item.innerHTML = `
+      <div class="item-label"><span class="item-num">${String(i+1).padStart(2,'0')}</span>${label}</div>
+      <div class="toggle">
+        <button type="button" class="oui" data-i="${i}" data-v="1">Oui</button>
+        <button type="button" class="non" data-i="${i}" data-v="0">Non</button>
+      </div>
+    `;
+    criteriaEl.appendChild(item);
+  });
+
+  criteriaEl.addEventListener('click', (e) => {
+    const btn = e.target.closest('button');
+    if (!btn) return;
+    const i = parseInt(btn.dataset.i, 10);
+    const v = parseInt(btn.dataset.v, 10);
+    answers[i] = v;
+
+    const item = btn.closest('.item');
+    item.classList.add('answered');
+    item.querySelectorAll('.toggle button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  });
+
+  // 2) Historique — isolé, ne peut jamais bloquer la checklist même si le stockage échoue
+  let storageOK = true;
+
+  function loadHistory(){
+    try {
+      return JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+    } catch(e){
+      storageOK = false;
+      return [];
+    }
+  }
+
+  function saveHistory(list){
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
+    } catch(e){
+      storageOK = false;
+    }
+  }
+
+  function renderHistory(){
+    try {
+      const list = loadHistory();
+      if (!storageOK){
+        historyContentEl.innerHTML = `<div class="history-empty">L'historique n'est pas disponible dans cet aperçu. Ouvre le fichier dans Safari pour l'activer.</div>`;
+        return;
+      }
+      if (list.length === 0){
+        historyContentEl.innerHTML = `<div class="history-empty">Aucune fiche enregistrée pour l'instant.</div>`;
+        return;
+      }
+      const rows = list.slice().reverse().map(entry => `
+        <div class="history-item" data-id="${entry.id}">
+          <div class="history-emoji">${entry.emoji}</div>
+          <div class="history-info">
+            <div class="history-name">${entry.name}</div>
+            <div class="history-meta">${entry.score}/7 · ${entry.date}</div>
+          </div>
+          <button class="history-del" data-id="${entry.id}" title="Supprimer">✕</button>
+        </div>
+      `).join('');
+      historyContentEl.innerHTML = `
+        <div class="history-list">${rows}</div>
+        <button class="history-clear" id="clearHistoryBtn">Vider l'historique</button>
+      `;
+    } catch(e){
+      historyContentEl.innerHTML = `<div class="history-empty">Historique indisponible.</div>`;
+    }
+  }
+
+  historyContentEl.addEventListener('click', (e) => {
+    const delBtn = e.target.closest('.history-del');
+    if (delBtn){
+      const id = delBtn.dataset.id;
+      const list = loadHistory().filter(entry => String(entry.id) !== id);
+      saveHistory(list);
+      renderHistory();
+      return;
+    }
+    if (e.target.id === 'clearHistoryBtn'){
+      if (confirm("Supprimer toutes les fiches enregistrées ?")){
+        saveHistory([]);
+        renderHistory();
+      }
+    }
+  });
+
+  renderHistory();
+
+  applyBtn.addEventListener('click', () => {
+    if (answers.some(a => a === null)) {
+      alert("Réponds à tous les critères avant d'appliquer.");
+      return;
+    }
+    const score = answers.reduce((a,b) => a+b, 0);
+    scoreNumEl.textContent = `${score}/7`;
+
+    let emoji, verdict, sub;
+    if (score < 4) {
+      emoji = '🔴';
+      verdict = "N'achète pas";
+      sub = "Score insuffisant. Trop de critères manquants, le risque est trop élevé.";
+    } else if (score === 4) {
+      emoji = '🟡';
+      verdict = "Limite — à toi de juger";
+      sub = "Pile 4/7. C'est jouable mais reste prudent, vérifie encore une fois les critères en Non.";
+    } else {
+      emoji = '🟢';
+      verdict = "Vas-y, achète";
+      sub = "Bon score. L'article coche assez de critères pour être une revente sûre.";
+    }
+    badgeEl.textContent = emoji;
+    verdictEl.textContent = verdict;
+    verdictSubEl.textContent = sub;
+
+    resultEl.classList.add('show');
+    resultEl.scrollIntoView({ behavior:'smooth', block:'nearest' });
+
+    const name = articleNameEl.value.trim() || 'Article sans nom';
+    const date = new Date().toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'2-digit' });
+    const list = loadHistory();
+    list.push({ id: Date.now(), name, score, emoji, date });
+    saveHistory(list);
+    renderHistory();
+  });
+
+  resetBtn.addEventListener('click', () => {
+    answers.fill(null);
+    articleNameEl.value = '';
+    document.querySelectorAll('.item').forEach(item => {
+      item.classList.remove('answered');
+      item.querySelectorAll('.toggle button').forEach(b => b.classList.remove('active'));
+    });
+    resultEl.classList.remove('show');
+    window.scrollTo({ top:0, behavior:'smooth' });
+  });
+</script>
+</body>
+</html>
