@@ -201,8 +201,6 @@ oninput="renderHistory()">
 
 <script>
 
-
-
 const AGENTS=[
 "acbuy",
 "allchinabuy",
@@ -218,409 +216,208 @@ const AGENTS=[
 "cnfans"
 ];
 
-
-
+// Récupération explicite de tous les éléments (jamais de variable globale
+// qui porte le même nom qu'une propriété native du navigateur, comme
+// window.status ou window.history — c'est ce qui causait le bug)
+const elUrl = document.getElementById("url");
+const elAgentChoice = document.getElementById("agentChoice");
+const elStatus = document.getElementById("status");
+const elResult = document.getElementById("result");
+const elDetails = document.getElementById("details");
+const elFavorites = document.getElementById("favorites");
+const elSearch = document.getElementById("search");
+const elHistory = document.getElementById("history");
 
 
 async function pasteAndConvert(){
-
-try{
-
-url.value=
-await navigator.clipboard.readText();
-
-convert();
-
+  try{
+    elUrl.value = await navigator.clipboard.readText();
+    convert();
+  }
+  catch(e){
+    elStatus.innerHTML = "⚠️ Impossible de lire le presse-papier";
+  }
 }
-
-catch(e){}
-
-}
-
-
-
-
-
 
 
 function detectAgent(u){
-
-u=u.toLowerCase();
-
-
-for(let a of AGENTS){
-
-if(u.includes(a))
-return a;
-
+  u = u.toLowerCase();
+  for (let a of AGENTS){
+    if (u.includes(a)) return a;
+  }
+  return "direct";
 }
 
 
-return "direct";
-
+// Si le lien collé est déjà un lien d'agent qui encapsule l'URL d'origine
+// (ex: ...?url=https%3A%2F%2Fweidian.com%2F...), on va chercher cette URL
+// planquée dedans pour pouvoir en extraire l'ID correctement.
+function unwrapUrl(u){
+  try{
+    const match = u.match(/[?&](?:url|u|link|goodsurl)=([^&]+)/i);
+    if (match){
+      let inner = decodeURIComponent(match[1]);
+      // Certains liens sont encodés deux fois
+      if (/%25|%2F|%3A/i.test(inner)){
+        try { inner = decodeURIComponent(inner); } catch(e){}
+      }
+      if (/^https?:\/\//i.test(inner)) return inner;
+    }
+  }
+  catch(e){}
+  return u;
 }
-
-
-
-
-
 
 
 function detectShop(u){
+  u = u.toLowerCase();
 
-u=u.toLowerCase();
+  if (u.includes("1688") || u.includes("ali_1688"))
+    return "ali_1688";
 
+  if (u.includes("taobao") || u.includes("tmall"))
+    return "taobao";
 
-if(
-u.includes("1688") ||
-u.includes("ali_1688")
-)
-return "ali_1688";
-
-
-
-if(
-u.includes("taobao") ||
-u.includes("tmall")
-)
-return "taobao";
-
-
-
-return "weidian";
-
+  return "weidian";
 }
-
-
-
-
-
-
 
 
 function extractId(u){
+  try{
+    let d = decodeURIComponent(u);
 
+    let patterns = [
+      /itemID=(\d+)/i,
+      /itemId=(\d+)/i,
+      /goodsId=(\d+)/i,
+      /goods_id=(\d+)/i,
+      /num_iid=(\d+)/i,
+      /offer\/(\d+)\.html/i,
+      /product\/weidian\/(\d+)/i,
+      /goods\/WEIDIAN\/(\d+)/i,
+      /item\.htm\?id=(\d+)/i,
+      /[?&]id=(\d+)/i
+    ];
 
-try{
+    for (let p of patterns){
+      let m = d.match(p);
+      if (m) return m[1];
+    }
 
-
-let d=decodeURIComponent(u);
-
-
-
-let patterns=[
-
-/itemID=(\d+)/i,
-
-/itemId=(\d+)/i,
-
-/goodsId=(\d+)/i,
-
-/product\/weidian\/(\d+)/i,
-
-/goods\/WEIDIAN\/(\d+)/i,
-
-/id=(\d+)/i
-
-];
-
-
-
-for(let p of patterns){
-
-let m=d.match(p);
-
-if(m)
-return m[1];
-
+    let nums = d.match(/\d{8,20}/g);
+    return nums ? nums.sort((a,b) => b.length - a.length)[0] : "";
+  }
+  catch(e){
+    return "";
+  }
 }
-
-
-
-let nums=d.match(/\d{8,20}/g);
-
-
-return nums ?
-nums.sort((a,b)=>b.length-a.length)[0]
-:"";
-
-
-
-}
-
-catch(e){
-
-return "";
-
-}
-
-}
-
-
-
-
-
-
-
 
 
 function convert(){
+  let raw = elUrl.value.trim();
 
+  if (!raw){
+    elStatus.innerHTML = "⚠️ Colle un lien";
+    return;
+  }
 
+  let u = unwrapUrl(raw);
+  let id = extractId(u);
+  let shop = detectShop(u);
+  let agent = detectAgent(raw);
+  let choice = elAgentChoice.value;
+  let out = "";
 
-let u=url.value.trim();
+  if (choice === "lovegobuy"){
+    if (!id){
+      elStatus.innerHTML = "⚠️ ID introuvable dans ce lien — essaie de coller le lien produit direct (Weidian/Taobao/1688) plutôt qu'un lien déjà converti, ou utilise AllChinaBuy.";
+      elDetails.innerHTML = `<span class="badge">${agent}</span><span class="badge">${shop}</span>`;
+      return;
+    }
+    out = `https://www.lovegobuy.com/product?id=${id}&shop_type=${shop}`;
+  }
 
+  if (choice === "allchinabuy"){
+    out = `https://www.allchinabuy.com/en/page/buy?url=${encodeURIComponent(u)}`;
+  }
 
+  elResult.value = out;
+  elStatus.innerHTML = "✅ Conversion réussie";
 
-if(!u){
+  elDetails.innerHTML = `
+    <span class="badge">${agent}</span>
+    <span class="badge">${shop}</span>
+    <span class="badge">${choice}</span>
+    ${id ? `<span class="badge">${id}</span>` : ""}
+  `;
 
-status.innerHTML="⚠️ Colle un lien";
+  try{
+    let h = JSON.parse(localStorage.getItem("allverter_hist") || "[]");
+    h.unshift(out);
+    h = [...new Set(h)].slice(0, 500);
+    localStorage.setItem("allverter_hist", JSON.stringify(h));
+  }
+  catch(e){}
 
-return;
-
+  renderHistory();
 }
 
 
-
-
-let id=extractId(u);
-
-
-let shop=detectShop(u);
-
-
-let agent=detectAgent(u);
-
-
-
-let choice=
-document.getElementById("agentChoice").value;
-
-
-
-let out="";
-
-
-
-
-
-if(choice==="lovegobuy"){
-
-
-if(!id){
-
-status.innerHTML="⚠️ ID introuvable";
-
-return;
-
+async function copyResult(){
+  if (!elResult.value) return;
+  try{
+    await navigator.clipboard.writeText(elResult.value);
+    elStatus.innerHTML = "📄 Copié !";
+  }
+  catch(e){
+    elStatus.innerHTML = "⚠️ Copie impossible sur cet aperçu";
+  }
 }
-
-
-out=
-`https://www.lovegobuy.com/product?id=${id}&shop_type=${shop}`;
-
-
-}
-
-
-
-
-
-if(choice==="allchinabuy"){
-
-
-out=
-`https://www.allchinabuy.com/en/page/buy?url=${encodeURIComponent(u)}`;
-
-
-}
-
-
-
-
-
-
-result.value=out;
-
-
-status.innerHTML=
-"✅ Conversion réussie";
-
-
-
-details.innerHTML=
-
-`
-<span class="badge">${agent}</span>
-<span class="badge">${shop}</span>
-<span class="badge">${choice}</span>
-${id ? `<span class="badge">${id}</span>`:""}
-
-`;
-
-
-
-
-
-let h=
-JSON.parse(
-localStorage.getItem("allverter_hist")||"[]"
-);
-
-
-
-h.unshift(out);
-
-
-h=[...new Set(h)].slice(0,500);
-
-
-
-localStorage.setItem(
-"allverter_hist",
-JSON.stringify(h)
-);
-
-
-
-renderHistory();
-
-
-}
-
-
-
-
-
-
-
-
-
-function copyResult(){
-
-navigator.clipboard.writeText(result.value);
-
-}
-
-
-
-
-
-
-
-
 
 
 function addFavorite(){
+  if (!elResult.value) return;
 
+  try{
+    let f = JSON.parse(localStorage.getItem("allverter_fav") || "[]");
+    f.unshift(elResult.value);
+    f = [...new Set(f)].slice(0, 100);
+    localStorage.setItem("allverter_fav", JSON.stringify(f));
+  }
+  catch(e){}
 
-if(!result.value)
-return;
-
-
-
-let f=
-JSON.parse(
-localStorage.getItem("allverter_fav")||"[]"
-);
-
-
-
-f.unshift(result.value);
-
-
-f=[...new Set(f)].slice(0,100);
-
-
-
-localStorage.setItem(
-"allverter_fav",
-JSON.stringify(f)
-);
-
-
-
-renderFav();
-
-
+  renderFav();
 }
-
-
-
-
-
-
-
-
 
 
 function renderFav(){
-
-
-let f=
-JSON.parse(
-localStorage.getItem("allverter_fav")||"[]"
-);
-
-
-
-favorites.innerHTML=
-
-f.map(x=>
-`<div class="small">⭐ ${x}</div>`
-).join("");
-
-
-
+  try{
+    let f = JSON.parse(localStorage.getItem("allverter_fav") || "[]");
+    elFavorites.innerHTML = f.map(x => `<div class="small">⭐ ${x}</div>`).join("");
+  }
+  catch(e){
+    elFavorites.innerHTML = "";
+  }
 }
-
-
-
-
-
-
-
 
 
 function renderHistory(){
-
-
-
-let h=
-JSON.parse(
-localStorage.getItem("allverter_hist")||"[]"
-);
-
-
-
-let q=
-(search.value||"").toLowerCase();
-
-
-
-history.innerHTML=
-
-h
-.filter(x=>x.toLowerCase().includes(q))
-.map(x=>
-`<div class="small">${x}</div>`
-)
-.join("");
-
-
-
+  try{
+    let h = JSON.parse(localStorage.getItem("allverter_hist") || "[]");
+    let q = (elSearch.value || "").toLowerCase();
+    elHistory.innerHTML = h
+      .filter(x => x.toLowerCase().includes(q))
+      .map(x => `<div class="small">${x}</div>`)
+      .join("");
+  }
+  catch(e){
+    elHistory.innerHTML = "";
+  }
 }
 
 
-
-
-
-
 renderFav();
-
 renderHistory();
-
-
 
 </script>
 
