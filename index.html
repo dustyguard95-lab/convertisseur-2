@@ -104,8 +104,8 @@ placeholder="Colle un lien Weidian, Taobao, 1688 ou agent"></textarea>
 🔵 LoveGoBuy
 </option>
 
-<option value="allchinabuy">
-🟣 AllChinaBuy
+<option value="bbdbuy">
+🟢 BBDBuy
 </option>
 
 </select>
@@ -337,8 +337,9 @@ function convert(){
     out = `https://www.lovegobuy.com/product?id=${id}&shop_type=${shop}`;
   }
 
-  if (choice === "allchinabuy"){
-    out = `https://www.allchinabuy.com/en/page/buy?url=${encodeURIComponent(u)}`;
+  if (choice === "bbdbuy"){
+    let tp = shop === "ali_1688" ? "1688" : shop;
+    out = `https://www.bbdbuy.com/index/item/index.html?tp=${tp}&searchlang=en&url=${encodeURIComponent(u)}`;
   }
 
   elResult.value = out;
